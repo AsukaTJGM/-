@@ -1,0 +1,30 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Log and screenshot outputs
+*.log
+*.png
+*.jpg
+*.jpeg
+window_dump.xml
+
+# System and editor files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Binaries
+*.exe
+*.dll
+scrcpy-win64-*/
