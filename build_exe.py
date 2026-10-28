@@ -50,15 +50,14 @@ for item in os.listdir(compiled_dir):
     src_path = os.path.join(compiled_dir, item)
     dst_path = os.path.join(DEST_DIR, item)
     if os.path.isdir(src_path):
-        if os.path.exists(dst_path):
-            shutil.rmtree(dst_path, ignore_errors=True)
-        shutil.copytree(src_path, dst_path)
+        os.makedirs(dst_path, exist_ok=True)
+        shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
     else:
         shutil.copy2(src_path, dst_path)
 
-# 清理桌面目录下的乱码残余文件
+# 清理桌面目录下的旧残余文件
 for fname in os.listdir(DEST_DIR):
-    if fname.endswith(".bat") or "" in fname:
+    if fname.endswith(".bat") or fname.endswith(".py"):
         try:
             os.remove(os.path.join(DEST_DIR, fname))
         except Exception:

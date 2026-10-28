@@ -24,10 +24,11 @@ STARTUP_INFO.wShowWindow = 0  # SW_HIDE
 NO_WINDOW_FLAGS = 0x08000000  # CREATE_NO_WINDOW
 
 # 使用纯 ASCII Unicode 转义，彻底杜绝 Windows 编码错乱 (CP936/GBK 乱码)
-# 考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘
+# 考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘, 金豆, 支付宝, 省钱, 农场, 庄园
 DEFAULT_BLACK_LIST = [
     "\u8003\u8bd5", "\u7b54\u9898", "\u4e70", "\u4e0b\u5355", 
-    "\u5145\u503c", "\u9080\u8bf7", "\u5f00\u5361", "\u62cd\u7acb\u6dd8"
+    "\u5145\u503c", "\u9080\u8bf7", "\u5f00\u5361", "\u62cd\u7acb\u6dd8",
+    "\u91d1\u8c46", "\u652f\u4ed8\u5b9d", "\u7701\u94b1", "\u519c\u573a", "\u5e84\u56ed"
 ]
 
 class AutoTaskEngine:
@@ -166,19 +167,23 @@ class AutoTaskEngine:
         if any(k in all_text for k in ["\u641c\u7d22\u6709\u798f\u5229", "\u641c\u7d22\u540e\u6d4f\u89c8", "\u641c\u7d22\u53d1\u73b0", "\u5386\u53f2\u641c\u7d22"]):
             self.log("  🔍 识别到【搜索任务】，快速点击关键词...")
             clicked = False
+            # 过滤静态大标题，只点击真正的推荐标签 (Y在1000~2300之间)
+            ignore_titles = ["\u641c\u7d22\u53d1\u73b0", "\u5386\u53f2\u641c\u7d22", "\u5168\u7f51\u70ed\u641c", "\u641c\u7d22", "\u6362\u4e00\u6362", "\u6e05\u7a7a"]
             if res:
                 for l in res:
                     box, txt = l[0], l[1]
-                    if any(k in txt for k in ["\u4e07\u4ee3", "hbn", "\u77ed\u88e4", "\u6a21\u578b", "\u53d1\u73b0"]):
-                        cx = (box[0][0] + box[1][0]) / 2
-                        cy = (box[0][1] + box[2][1]) / 2
-                        self.log(f"  👉 命中词: {txt}，进入列表...")
+                    clean_txt = txt.strip()
+                    cx = (box[0][0] + box[1][0]) / 2
+                    cy = (box[0][1] + box[2][1]) / 2
+                    if clean_txt not in ignore_titles and 1000 < cy < 2300 and len(clean_txt) >= 2:
+                        self.log(f"  👉 命中推荐词标签: {clean_txt} (坐标: {int(cx)}, {int(cy)})，进入搜索结果...")
                         self.tap(cx, cy)
                         clicked = True
                         break
             if not clicked:
-                self.tap(300, 1100)
-            time.sleep(1.2)
+                self.log("  👉 兜底点击右上角【搜索】按钮进入商品列表...")
+                self.tap(970, 180)
+            time.sleep(2.5)
 
         self.browse_reciprocating(total_seconds=browse_seconds)
         self.return_to_task_list()
@@ -278,7 +283,13 @@ class AutoTaskEngine:
                 time.sleep(0.5)
                 self.return_to_task_list()
             else:
-                browse_sec = 6 if "5\u79d2" in target_task_name else 17
+                # 严谨区分 15秒 与 5秒任务，防止 "15秒" 误命中 "5秒"
+                if "15\u79d2" in target_task_name:
+                    browse_sec = 18
+                elif "5\u79d2" in target_task_name:
+                    browse_sec = 7
+                else:
+                    browse_sec = 18
                 self.handle_landing_page(browse_seconds=browse_sec)
 
             completed += 1
