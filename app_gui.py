@@ -136,30 +136,28 @@ class AutoTaskEngine:
             time.sleep(random.uniform(1.6, 2.2))
 
     def return_to_task_list(self, max_backs=4):
-        self.log("  🔙 正在智能返回任务弹窗...")
+        self.log("  🔙 正在快速返回任务弹窗...")
         for _ in range(max_backs):
             if not self.is_running:
                 return False
             img_bytes = self.get_screencap()
             res, _ = self.ocr(img_bytes)
             all_text = "".join([l[1] for l in res]) if res else ""
-            # "做任务赚能量" or "累计任务奖励"
             if "\u505a\u4efb\u52a1\u8d5a\u80fd\u91cf" in all_text or "\u7d2f\u8ba1\u4efb\u52a1\u5956\u52b1" in all_text:
-                self.log("  ✅ 已成功回到【做任务赚能量】面板")
+                self.log("  ✅ 已回到主面板")
                 return True
             self.press_back()
-            time.sleep(1.8)
+            time.sleep(0.8)
         return False
 
     def handle_landing_page(self, browse_seconds=18):
-        time.sleep(2.0)
+        time.sleep(1.0)
         img_bytes = self.get_screencap()
         res, _ = self.ocr(img_bytes)
         all_text = "".join([l[1] for l in res]) if res else ""
 
-        # "搜索有福利" or "搜索后浏览" or "搜索发现" or "历史搜索"
         if any(k in all_text for k in ["\u641c\u7d22\u6709\u798f\u5229", "\u641c\u7d22\u540e\u6d4f\u89c8", "\u641c\u7d22\u53d1\u73b0", "\u5386\u53f2\u641c\u7d22"]):
-            self.log("  🔍 识别到【搜索任务】页面，正在自动点击搜索关键词...")
+            self.log("  🔍 识别到【搜索任务】，快速点击关键词...")
             clicked = False
             if res:
                 for l in res:
@@ -167,14 +165,13 @@ class AutoTaskEngine:
                     if any(k in txt for k in ["\u4e07\u4ee3", "hbn", "\u77ed\u88e4", "\u6a21\u578b", "\u53d1\u73b0"]):
                         cx = (box[0][0] + box[1][0]) / 2
                         cy = (box[0][1] + box[2][1]) / 2
-                        self.log(f"  👉 命中推荐词: {txt}，进入搜索结果...")
+                        self.log(f"  👉 命中词: {txt}，进入列表...")
                         self.tap(cx, cy)
                         clicked = True
                         break
             if not clicked:
-                self.log("  👉 兜底点击推荐搜索卡片 (300, 1100)...")
                 self.tap(300, 1100)
-            time.sleep(2.5)
+            time.sleep(1.2)
 
         self.browse_reciprocating(total_seconds=browse_seconds)
         self.return_to_task_list()
@@ -268,19 +265,19 @@ class AutoTaskEngine:
             self.tap(target_button["center"][0], target_button["center"][1])
 
             if is_click_and_return:
-                self.log("  ⚡ 识别为【点击即领】任务，检测是否弹出授权...")
-                time.sleep(1.5)
+                self.log("  ⚡ 识别为【点击即领】任务，极速唤起返回...")
+                time.sleep(0.8)
                 self.check_and_dismiss_open_dialog()
-                time.sleep(2.0)
+                time.sleep(0.5)
                 self.return_to_task_list()
             else:
-                browse_sec = 7 if "5\u79d2" in target_task_name else 18
+                browse_sec = 6 if "5\u79d2" in target_task_name else 17
                 self.handle_landing_page(browse_seconds=browse_sec)
 
             completed += 1
             no_button_retries = 0
             self.log(f"✅ 已累计完成 {completed} 个任务！\n")
-            time.sleep(1.0)
+            time.sleep(0.4)
 
         self.is_running = False
         self.update_status("idle")
