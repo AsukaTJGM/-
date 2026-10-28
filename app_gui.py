@@ -88,19 +88,34 @@ class AutoTaskEngine:
         if not res:
             return False
         all_text = "".join([l[1] for l in res])
-        # "想要打开" or "允许打开"
-        if "\u60f3\u8981\u6253\u5f00" in all_text or "\u5141\u8bb8\u6253\u5f00" in all_text:
-            self.log("  🔔 捕获到【打开小程序】授权弹窗，正在自动点击『打开』...")
+        # "想要打开" or "允许打开" or "小程序"
+        if "\u60f3\u8981\u6253\u5f00" in all_text or "\u5141\u8bb8\u6253\u5f00" in all_text or "\u5c0f\u7a0b\u5e8f" in all_text:
+            self.log("  🔔 捕获到【打开小程序】授权弹窗...")
+            # 1. 尝试勾选『始终允许打开』
             for l in res:
                 box, txt = l[0], l[1]
-                if "\u6253\u5f00" in txt and (box[0][0] + box[1][0]) / 2 > 500:
+                cy = (box[0][1] + box[2][1]) / 2
+                if any(k in txt for k in ["\u59cb\u7ec8", "\u5141\u8bb8"]) and cy > 1800:
                     cx = (box[0][0] + box[1][0]) / 2
-                    cy = (box[0][1] + box[2][1]) / 2
+                    self.tap(cx - 150, cy)
+                    time.sleep(0.5)
+                    break
+
+            # 2. 精准点击底部的『打开』按钮（严格限定 Y>2000 且 X>600，绝不误点标题！）
+            for l in res:
+                box, txt = l[0], l[1]
+                cx = (box[0][0] + box[1][0]) / 2
+                cy = (box[0][1] + box[2][1]) / 2
+                if txt.strip() in ["\u6253\u5f00", "\u5141\u8bb8"] and cy > 2000 and cx > 600:
+                    self.log(f"  👉 精准点击『打开』按钮 (坐标: {int(cx)}, {int(cy)})...")
                     self.tap(cx, cy)
-                    time.sleep(1.5)
+                    time.sleep(2.0)
                     return True
-            self.tap(860, 2360)
-            time.sleep(1.5)
+
+            # 3. 兜底坐标点击右下角『打开』按钮
+            self.log("  👉 兜底点击右下角『打开』坐标 (870, 2350)...")
+            self.tap(870, 2350)
+            time.sleep(2.0)
             return True
         return False
 
