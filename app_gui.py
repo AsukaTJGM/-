@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-淘宝双11自动化任务助手 - 桌面图形版 (GUI)
-基于 Python + Tkinter + RapidOCR + ADB
+淘宝双11自动化任务助手 - 桌面图形版 (GUI 稳健纯净版)
 """
 
 import os
@@ -13,14 +12,17 @@ import subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 
-# 基础路径与 ADB 路径
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ADB_PATH = os.path.join(BASE_DIR, "adb.exe")
 if not os.path.exists(ADB_PATH):
     ADB_PATH = "adb"
 
-# 黑名单任务
-DEFAULT_BLACK_LIST = ["考试", "答题", "买", "下单", "充值", "邀请", "开卡", "拍立淘"]
+# 使用纯 ASCII Unicode 转义，彻底杜绝 Windows 编码错乱 (CP936/GBK 乱码)
+# 考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘
+DEFAULT_BLACK_LIST = [
+    "\u8003\u8bd5", "\u7b54\u9898", "\u4e70", "\u4e0b\u5355", 
+    "\u5145\u503c", "\u9080\u8bf7", "\u5f00\u5361", "\u62cd\u7acb\u6dd8"
+]
 
 class AutoTaskEngine:
     def __init__(self, log_callback, update_status_callback):
@@ -28,6 +30,7 @@ class AutoTaskEngine:
         self.update_status = update_status_callback
         self.is_running = False
         self.ocr = None
+        self.device_id = None
 
     def init_ocr(self):
         if self.ocr is None:
@@ -37,9 +40,19 @@ class AutoTaskEngine:
             self.log("AI 视觉引擎初始化完成！")
 
     def run_adb(self, cmd_list):
-        full_cmd = [ADB_PATH] + cmd_list
+        full_cmd = [ADB_PATH]
+        if self.device_id:
+            full_cmd += ["-s", self.device_id]
+        full_cmd += cmd_list
         try:
-            res = subprocess.run(full_cmd, capture_output=True, text=False, timeout=15)
+            # 彻底静默执行，绝不弹任何 cmd 黑色小窗口或任务栏闪烁
+            res = subprocess.run(
+                full_cmd, 
+                capture_output=True, 
+                text=False, 
+                timeout=15,
+                creationflags=0x08000000
+            )
             return res.stdout
         except Exception as e:
             self.log(f"ADB 命令异常: {e}")
@@ -57,17 +70,30 @@ class AutoTaskEngine:
     def swipe_screen(self, x1, y1, x2, y2, duration_ms=600):
         self.run_adb(["shell", "input", "swipe", str(int(x1)), str(int(y1)), str(int(x2)), str(int(y2)), str(int(duration_ms))])
 
+    def ensure_screen_on(self):
+        """确保手机屏幕点亮"""
+        res = self.run_adb(["shell", "dumpsys", "window"])
+        if b"mAwake=false" in res:
+            self.log("⚠️ 检测到手机熄屏，正在自动点亮屏幕...")
+            self.run_adb(["shell", "input", "keyevent", "224"])
+            time.sleep(1.0)
+            self.swipe_screen(600, 2000, 600, 500, 300)
+            time.sleep(1.0)
+
     def check_and_dismiss_open_dialog(self):
         img_bytes = self.get_screencap()
+        if not img_bytes:
+            return False
         res, _ = self.ocr(img_bytes)
         if not res:
             return False
         all_text = "".join([l[1] for l in res])
-        if "想要打开" in all_text or "允许打开" in all_text:
+        # "想要打开" or "允许打开"
+        if "\u60f3\u8981\u6253\u5f00" in all_text or "\u5141\u8bb8\u6253\u5f00" in all_text:
             self.log("  🔔 捕获到【打开小程序】授权弹窗，正在自动点击『打开』...")
             for l in res:
                 box, txt = l[0], l[1]
-                if "打开" in txt and (box[0][0] + box[1][0]) / 2 > 500:
+                if "\u6253\u5f00" in txt and (box[0][0] + box[1][0]) / 2 > 500:
                     cx = (box[0][0] + box[1][0]) / 2
                     cy = (box[0][1] + box[2][1]) / 2
                     self.tap(cx, cy)
@@ -102,7 +128,8 @@ class AutoTaskEngine:
             img_bytes = self.get_screencap()
             res, _ = self.ocr(img_bytes)
             all_text = "".join([l[1] for l in res]) if res else ""
-            if "做任务赚能量" in all_text or "累计任务奖励" in all_text:
+            # "做任务赚能量" or "累计任务奖励"
+            if "\u505a\u4efb\u52a1\u8d5a\u80fd\u91cf" in all_text or "\u7d2f\u8ba1\u4efb\u52a1\u5956\u52b1" in all_text:
                 self.log("  ✅ 已成功回到【做任务赚能量】面板")
                 return True
             self.press_back()
@@ -115,13 +142,14 @@ class AutoTaskEngine:
         res, _ = self.ocr(img_bytes)
         all_text = "".join([l[1] for l in res]) if res else ""
 
-        if "搜索有福利" in all_text or "搜索后浏览" in all_text or "搜索发现" in all_text or "历史搜索" in all_text:
+        # "搜索有福利" or "搜索后浏览" or "搜索发现" or "历史搜索"
+        if any(k in all_text for k in ["\u641c\u7d22\u6709\u798f\u5229", "\u641c\u7d22\u540e\u6d4f\u89c8", "\u641c\u7d22\u53d1\u73b0", "\u5386\u53f2\u641c\u7d22"]):
             self.log("  🔍 识别到【搜索任务】页面，正在自动点击搜索关键词...")
             clicked = False
             if res:
                 for l in res:
                     box, txt = l[0], l[1]
-                    if any(k in txt for k in ["神宝", "万代", "hbn", "短裤", "模型", "发现"]):
+                    if any(k in txt for k in ["\u4e07\u4ee3", "hbn", "\u77ed\u88e4", "\u6a21\u578b", "\u53d1\u73b0"]):
                         cx = (box[0][0] + box[1][0]) / 2
                         cy = (box[0][1] + box[2][1]) / 2
                         self.log(f"  👉 命中推荐词: {txt}，进入搜索结果...")
@@ -154,6 +182,7 @@ class AutoTaskEngine:
         no_button_retries = 0
 
         while self.is_running and (completed < max_tasks):
+            self.ensure_screen_on()
             img_bytes = self.get_screencap()
             if not img_bytes:
                 self.log("❌ 截图失败，请检查手机 ADB 连接")
@@ -162,7 +191,7 @@ class AutoTaskEngine:
 
             result, _ = self.ocr(img_bytes)
             if not result:
-                self.log("⚠️ 当前画面未识别到文字")
+                self.log("⚠️ 画面未识别到文字，请确保手机屏幕停留在【做任务赚能量】")
                 time.sleep(2)
                 continue
 
@@ -174,7 +203,10 @@ class AutoTaskEngine:
                 center_x = (box[0][0] + box[1][0]) / 2
                 center_y = (box[0][1] + box[2][1]) / 2
 
-                if any(b in text for b in ["去完成", "去浏览", "去逛逛"]) and center_x > 800:
+                # 宽泛匹配右侧按钮：只要在右侧且包含“去”或“浏览”或“逛”或“完成”
+                # "\u53bb" (去), "\u5b8c\u6210" (完成), "\u6d4f\u89c8" (浏览), "\u901b" (逛)
+                is_btn = any(b in text for b in ["\u53bb", "\u5b8c\u6210", "\u6d4f\u89c8", "\u901b"])
+                if is_btn and center_x > 800:
                     buttons.append({"box": box, "center": (center_x, center_y), "text": text})
                 else:
                     text_items.append({"box": box, "center": (center_x, center_y), "text": text})
@@ -191,7 +223,7 @@ class AutoTaskEngine:
 
             buttons.sort(key=lambda b: b["center"][1])
             target_button = None
-            target_task_name = "未命名任务"
+            target_task_name = "浏览任务"
 
             for btn in buttons:
                 btn_y = btn["center"][1]
@@ -204,7 +236,7 @@ class AutoTaskEngine:
                 is_black = any(bad in row_title for bad in DEFAULT_BLACK_LIST)
                 if not is_black:
                     target_button = btn
-                    target_task_name = row_title if row_title else "未命名任务"
+                    target_task_name = row_title if row_title else btn["text"]
                     break
                 else:
                     self.log(f"  ⏭️ 跳过特殊任务: {row_title}")
@@ -215,8 +247,9 @@ class AutoTaskEngine:
                 time.sleep(2)
                 continue
 
-            is_click_and_return = "点击去逛" in target_task_name or ("浏览" not in target_task_name and "搜" not in target_task_name)
-            self.log(f"\n👉 [点击任务] {target_task_name}")
+            # "点击去逛" (\u70b9\u51fb\u53bb\u901b), "浏览" (\u6d4f\u89c8), "搜" (\u641c)
+            is_click_and_return = "\u70b9\u51fb\u53bb\u901b" in target_task_name or ("\u6d4f\u89c8" not in target_task_name and "\u641c" not in target_task_name)
+            self.log(f"\n👉 [点击任务] {target_task_name} (坐标: {int(target_button['center'][0])}, {int(target_button['center'][1])})")
             self.tap(target_button["center"][0], target_button["center"][1])
 
             if is_click_and_return:
@@ -226,7 +259,7 @@ class AutoTaskEngine:
                 time.sleep(2.0)
                 self.return_to_task_list()
             else:
-                browse_sec = 7 if "5秒" in target_task_name else 18
+                browse_sec = 7 if "5\u79d2" in target_task_name else 18
                 self.handle_landing_page(browse_seconds=browse_sec)
 
             completed += 1
@@ -246,7 +279,6 @@ class AppGUI(tk.Tk):
         self.geometry("680x640")
         self.minsize(580, 520)
 
-        # 样式与主题
         self.style = ttk.Style(self)
         self.style.theme_use("clam")
 
@@ -257,7 +289,6 @@ class AppGUI(tk.Tk):
         self.check_device()
 
     def setup_ui(self):
-        # 顶部标题栏
         top_frame = ttk.Frame(self, padding="12 10")
         top_frame.pack(fill=tk.X)
 
@@ -267,7 +298,6 @@ class AppGUI(tk.Tk):
         self.status_badge = ttk.Label(top_frame, text="● 待命", font=("Microsoft YaHei UI", 10), foreground="#666666")
         self.status_badge.pack(side=tk.RIGHT, padx=10)
 
-        # 设备连接卡片
         dev_group = ttk.LabelFrame(self, text=" 设备连接管理 ", padding="10")
         dev_group.pack(fill=tk.X, padx=14, pady=5)
 
@@ -286,7 +316,7 @@ class AppGUI(tk.Tk):
 
         ttk.Label(f2, text="无线连接:").pack(side=tk.LEFT, padx=5)
         self.ip_entry = ttk.Entry(f2, width=24)
-        self.ip_entry.insert(0, "192.168.1.104:42079")
+        self.ip_entry.insert(0, "192.168.1.104:33821")
         self.ip_entry.pack(side=tk.LEFT, padx=5)
 
         self.btn_connect = ttk.Button(f2, text="一键连接无线", command=self.connect_wireless)
@@ -295,7 +325,6 @@ class AppGUI(tk.Tk):
         self.btn_scrcpy = ttk.Button(f2, text="📱 打开投屏监视", command=self.open_scrcpy)
         self.btn_scrcpy.pack(side=tk.RIGHT, padx=5)
 
-        # 任务控制卡片
         ctl_group = ttk.LabelFrame(self, text=" 任务控制与配置 ", padding="10")
         ctl_group.pack(fill=tk.X, padx=14, pady=5)
 
@@ -313,7 +342,6 @@ class AppGUI(tk.Tk):
         self.btn_stop = ttk.Button(f3, text="⏹ 停止运行", command=self.stop_task, state=tk.DISABLED)
         self.btn_stop.pack(side=tk.RIGHT, padx=6)
 
-        # 日志输出控制台
         log_group = ttk.LabelFrame(self, text=" 实时执行日志 ", padding="8")
         log_group.pack(fill=tk.BOTH, expand=True, padx=14, pady=6)
 
@@ -344,14 +372,16 @@ class AppGUI(tk.Tk):
 
     def check_device(self):
         try:
-            res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5)
+            res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5, creationflags=0x08000000)
             lines = [l.strip() for l in res.stdout.splitlines() if l.strip()]
             devs = [l for l in lines[1:] if "device" in l and "offline" not in l]
             if devs:
                 dev_name = devs[0].split()[0]
+                self.engine.device_id = dev_name
                 self.dev_label.config(text=f"🟢 已连接 ({dev_name})", foreground="#27ae60")
                 self.append_log(f"检测到可用设备: {dev_name}")
             else:
+                self.engine.device_id = None
                 self.dev_label.config(text="🔴 未检测到设备", foreground="#c0392b")
                 self.append_log("⚠️ 当前无已连接的 ADB 设备")
         except Exception as e:
@@ -365,7 +395,7 @@ class AppGUI(tk.Tk):
             return
         self.append_log(f"正在尝试连接无线设备: {target}...")
         try:
-            res = subprocess.run([ADB_PATH, "connect", target], capture_output=True, text=True, timeout=8)
+            res = subprocess.run([ADB_PATH, "connect", target], capture_output=True, text=True, timeout=8, creationflags=0x08000000)
             self.append_log(res.stdout.strip())
             self.check_device()
         except Exception as e:
