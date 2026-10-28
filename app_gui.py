@@ -17,6 +17,12 @@ ADB_PATH = os.path.join(BASE_DIR, "adb.exe")
 if not os.path.exists(ADB_PATH):
     ADB_PATH = "adb"
 
+# Windows 绝不弹窗黑科技：同时注入 SW_HIDE 与 CREATE_NO_WINDOW
+STARTUP_INFO = subprocess.STARTUPINFO()
+STARTUP_INFO.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+STARTUP_INFO.wShowWindow = 0  # SW_HIDE
+NO_WINDOW_FLAGS = 0x08000000  # CREATE_NO_WINDOW
+
 # 使用纯 ASCII Unicode 转义，彻底杜绝 Windows 编码错乱 (CP936/GBK 乱码)
 # 考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘
 DEFAULT_BLACK_LIST = [
@@ -45,13 +51,14 @@ class AutoTaskEngine:
             full_cmd += ["-s", self.device_id]
         full_cmd += cmd_list
         try:
-            # 彻底静默执行，绝不弹任何 cmd 黑色小窗口或任务栏闪烁
+            # 彻底静默执行，注入 STARTUPINFO 隐藏窗口，绝不弹任何 cmd/conhost 窗口
             res = subprocess.run(
                 full_cmd, 
                 capture_output=True, 
                 text=False, 
                 timeout=15,
-                creationflags=0x08000000
+                startupinfo=STARTUP_INFO,
+                creationflags=NO_WINDOW_FLAGS
             )
             return res.stdout
         except Exception as e:
@@ -384,7 +391,7 @@ class AppGUI(tk.Tk):
 
     def check_device(self):
         try:
-            res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5, creationflags=0x08000000)
+            res = subprocess.run([ADB_PATH, "devices"], capture_output=True, text=True, timeout=5, startupinfo=STARTUP_INFO, creationflags=NO_WINDOW_FLAGS)
             lines = [l.strip() for l in res.stdout.splitlines() if l.strip()]
             devs = [l for l in lines[1:] if "device" in l and "offline" not in l]
             if devs:
@@ -407,7 +414,7 @@ class AppGUI(tk.Tk):
             return
         self.append_log(f"正在尝试连接无线设备: {target}...")
         try:
-            res = subprocess.run([ADB_PATH, "connect", target], capture_output=True, text=True, timeout=8, creationflags=0x08000000)
+            res = subprocess.run([ADB_PATH, "connect", target], capture_output=True, text=True, timeout=8, startupinfo=STARTUP_INFO, creationflags=NO_WINDOW_FLAGS)
             self.append_log(res.stdout.strip())
             self.check_device()
         except Exception as e:
