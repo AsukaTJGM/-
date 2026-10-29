@@ -35,9 +35,17 @@ if not os.path.exists(compiled_dir):
     print("❌ 编译失败，未生成输出目录！")
     sys.exit(1)
 
-# 复制 ADB 二进制文件到编译输出目录
+# 复制 ADB 与 Scrcpy 投屏二进制文件到编译输出目录
+scrcpy_src_dir = r"C:\Users\Pan\Desktop\scrcpy-win64-v5.0.1"
 for f in ["adb.exe", "AdbWinApi.dll", "AdbWinUsbApi.dll"]:
     src = os.path.join(BASE_DIR, f)
+    dst = os.path.join(compiled_dir, f)
+    if os.path.exists(src):
+        shutil.copy2(src, dst)
+
+scrcpy_files = ["scrcpy.exe", "scrcpy-server", "SDL3.dll", "avcodec-63.dll", "avformat-63.dll", "avutil-61.dll", "swresample-7.dll", "libusb-1.0.dll"]
+for f in scrcpy_files:
+    src = os.path.join(scrcpy_src_dir, f)
     dst = os.path.join(compiled_dir, f)
     if os.path.exists(src):
         shutil.copy2(src, dst)

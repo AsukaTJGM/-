@@ -432,12 +432,31 @@ class AppGUI(tk.Tk):
             self.append_log(f"连接失败: {e}")
 
     def open_scrcpy(self):
-        scrcpy_exe = os.path.join(os.path.dirname(BASE_DIR), "scrcpy-win64-v5.0.1", "scrcpy.exe")
-        if not os.path.exists(scrcpy_exe):
-            scrcpy_exe = "scrcpy"
+        exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else BASE_DIR
+        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+        candidates = [
+            os.path.join(exe_dir, "scrcpy.exe"),
+            os.path.join(desktop_dir, "TaobaoDouble11Auto", "scrcpy.exe"),
+            os.path.join(desktop_dir, "scrcpy-win64-v5.0.1", "scrcpy.exe"),
+            r"C:\Users\Pan\Desktop\scrcpy-win64-v5.0.1\scrcpy.exe",
+            r"C:\Users\Pan\Desktop\TaobaoDouble11Auto\scrcpy.exe"
+        ]
+        scrcpy_exe = None
+        for c in candidates:
+            if os.path.exists(c):
+                scrcpy_exe = c
+                break
+
+        if not scrcpy_exe:
+            self.append_log("⚠️ 未在软件目录或桌面上找到 scrcpy.exe 投屏组件！")
+            return
+
         try:
-            subprocess.Popen([scrcpy_exe, "--no-audio", "-m", "1024"])
-            self.append_log("已唤起投屏监视窗口！")
+            cmd = [scrcpy_exe, "--no-audio", "-m", "1024"]
+            if self.engine.device_id:
+                cmd += ["-s", self.engine.device_id]
+            subprocess.Popen(cmd, cwd=os.path.dirname(scrcpy_exe))
+            self.append_log(f"已唤起手机投屏监视窗口！")
         except Exception as e:
             self.append_log(f"启动投屏失败: {e}")
 
