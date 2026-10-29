@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>淘宝双11自动化助手 - 官方使用说明书 (User Manual)</title>
+  <style>
+    :root {
+      --primary: #FF5000;
+      --primary-hover: #E04600;
+      --primary-light: #FFF0EB;
+      --primary-subtle: #FFF7F4;
+      --success: #10B981;
+      --success-light: #ECFDF5;
+      --warning: #F59E0B;
+      --warning-light: #FEF3C7;
+      --danger: #EF4444;
+      --danger-light: #FEE2E2;
+      --gray-50: #F8FAFC;
+      --gray-100: #F1F5F9;
+      --gray-200: #E2E8F0;
+      --gray-300: #CBD5E1;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-900: #0F172A;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--gray-50);
+      color: var(--gray-900);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 32px 16px 80px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    /* 顶部 Hero 导航区 */
+    .hero {
+      background: linear-gradient(135deg, #FF5000 0%, #FF6E2E 100%);
+      color: #fff;
+      padding: 48px 36px;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 25px -5px rgba(255, 80, 0, 0.25);
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "双11狂享";
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.08);
+      user-select: none;
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .hero h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+    .hero p {
+      font-size: 16px;
+      opacity: 0.95;
+      max-width: 680px;
+      margin-bottom: 24px;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .hero-tag {
+      background: #fff;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* 卡片与网格 */
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    /* 步骤条流程图 */
+    .steps-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 16px;
+    }
+    .step-item {
+      display: flex;
+      gap: 20px;
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .step-num {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(255, 80, 0, 0.3);
+    }
+    .step-content { flex: 1; }
+    .step-content h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+    .step-content p {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    /* 快捷功能徽章 */
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    .badge-success { background: var(--success-light); color: var(--success); }
+    .badge-warning { background: var(--warning-light); color: var(--warning); }
+    .badge-danger { background: var(--danger-light); color: var(--danger); }
+
+    /* 表格 */
+    .table-wrapper {
+      overflow-x: auto;
+      margin-top: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--gray-200);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background: var(--gray-100);
+      color: var(--gray-700);
+      padding: 12px 16px;
+      font-weight: 700;
+    }
+    td {
+      padding: 14px 16px;
+      border-top: 1px solid var(--gray-200);
+      color: var(--gray-700);
+    }
+    tr:hover { background: #FAFBFD; }
+
+    /* 高亮提示框 */
+    .callout {
+      background: var(--primary-subtle);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 16px 0;
+      font-size: 14px;
+      color: var(--gray-700);
+    }
+    .callout-success {
+      background: var(--success-light);
+      border-left-color: var(--success);
+    }
+
+    /* 快捷键与代码 */
+    code {
+      background: var(--gray-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    /* 常见问题 FAQ 展开卡片 */
+    .faq-item {
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .faq-q {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .faq-a {
+      font-size: 14px;
+      color: var(--gray-600);
+      line-height: 1.6;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--gray-600);
+      font-size: 13px;
+    }
+
+    @media (max-width: 640px) {
+      .hero { padding: 32px 20px; }
+      .hero h1 { font-size: 24px; }
+      .step-item { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Hero 头部 -->
+    <div class="hero">
+      <div class="hero-badge">⚡ 2026 双11官方定制版 v1.2</div>
+      <h1>淘宝双11自动化任务助手 · 官方说明书</h1>
+      <p>免安装 Python、零命令行操作、零控制台弹窗。基于离线 AI 视觉识图与内置低延迟投屏，一键全自动刷满每日淘金币赛车大促能量。</p>
+      <div class="hero-tags">
+        <span class="hero-tag">✨ 开箱即用 .exe</span>
+        <span class="hero-tag">🔕 零弹窗静默运行</span>
+        <span class="hero-tag">📱 内置投屏监视</span>
+        <span class="hero-tag">🧠 离线 AI 认字</span>
+        <span class="hero-tag">🎁 里程碑大奖自动领</span>
+      </div>
+    </div>
+
+    <!-- 核心优势快速导读 -->
+    <div class="card">
+      <div class="section-title">💡 为什么选择本助手？</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+        <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius-sm);">
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--primary);">🚫 绝不抢占电脑鼠标</div>
+          <div style="font-size: 13px; color: var(--gray-600);">操作指令直接注入手机底层内核，电脑端该码字码字、该打游戏打游戏，完全互不干扰。</div>
+        </div>
+        <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius-sm);">
+          <div style="font-weight: 700; margin-bottom: 6px; color: var(--success);">⚡ 对方电脑零环境要求</div>
+          <div style="font-size: 13px; color: var(--gray-600);">完整内置 Python 运行库与模型，直接发给朋友解压就能用，无需配置任何代码环境。</div>
+        </div>
+        <div style="background: var(--gray-50); padding: 16px; border-radius: var(--radius-sm);">
+          <div style="font-weight: 700; margin-bottom: 6px; color: #3B82F6;">🛡️ 满额熔断防死循环</div>
+          <div style="font-size: 13px; color: var(--gray-600);">智能解析 <code>(10/10)</code> 与灰色“已完成”按钮，做满自动跳过翻页，绝不重复瞎点。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4步上手保姆级教程 -->
+    <div class="section-title">🚀 4步极速上手指南</div>
+    <div class="steps-container">
+
+      <!-- 步骤 1 -->
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>手机端开启无线调试 (只需配置一次)</h3>
+          <p>确保手机和电脑连接在<strong>同一个家庭 Wi-Fi 网络</strong>下：</p>
+          <ul>
+            <li>进入手机 <strong>「设置」</strong> $\to$ <strong>「关于手机」</strong> $\to$ 连续快速点击 <strong>「版本号」</strong> 7 次打开开发者选项；</li>
+            <li>进入 <strong>「开发者选项」</strong>，开启 <strong>【USB 调试】</strong> 与 <strong>【无线调试】</strong>；</li>
+            <li>点击“无线调试”四个字进入详情页，记下屏幕上显示的 <strong>IP 地址和端口</strong>（例如 <code>192.168.1.104:33821</code>）。</li>
+          </ul>
+          <div class="callout">
+            💡 <strong>免配对提示</strong>：若提示配对，点击“使用配对码配对”，记录 6 位配对码和配对端口执行一次配对即可永久免配对。
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤 2 -->
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>电脑端一键启动与无线连接</h3>
+          <p>直接双击电脑桌面上的 <strong>【淘宝双11自动化助手】</strong> 快捷图标启动软件：</p>
+          <ul>
+            <li>在软件上方的 <strong>【无线连接】</strong> 输入框中，填入手机无线调试界面上显示的 <code>IP:端口</code>；</li>
+            <li>点击 <strong>【一键连接无线】</strong> 按钮，稍等 1 秒；</li>
+            <li>状态栏变绿并显示 <code>● 状态: 已连接 (192.168.1.104:...)</code> 即代表握手成功！</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 步骤 3 -->
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>📱 唤起实时投屏视窗 (可选但推荐)</h3>
+          <p>无需去外面下载第三方软件，本程序已原生内置 <strong>Scrcpy 5.0.1 高清引擎</strong>：</p>
+          <ul>
+            <li>点击界面右侧的 <strong>【📱 打开投屏监视】</strong> 按钮；</li>
+            <li>电脑屏幕上会立即唤起一个手机投屏窗口，你可以实时看到手机画面；</li>
+            <li>这个投屏窗口可以随时最小化或拖到角落，完全不影响后台自动运行。</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 步骤 4 -->
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>进入任务面板，启动自动化</h3>
+          <p>让手机画面停留在淘宝任务列表中：</p>
+          <ul>
+            <li>在手机上打开淘宝，进入双11赛车主会场，点击 <strong>【做任务赚能量】</strong> 调出任务列表；</li>
+            <li>在电脑软件界面勾选需要的过滤选项（如默认勾选跳过考试答题、跳过邀请好友等）；</li>
+            <li>点击 <strong>【▶ 启动全自动任务】</strong>，助手开始全自动扫描文字、点击、滑动浏览并秒级返回！</li>
+          </ul>
+          <div class="callout callout-success">
+            🎁 <strong>自动收割大奖</strong>：程序每次进入主界面时，会自动识别并点掉上方亮起的 <strong>【立即领取 +1000】</strong>、<strong>【立即领取 +2000】</strong> 里程碑大奖！
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 任务过滤与跳过配置 -->
+    <div class="card" style="margin-top: 28px;">
+      <div class="section-title">🎛️ 任务过滤与跳过规则配置说明</div>
+      <p style="font-size: 14px; color: var(--gray-600); margin-bottom: 12px;">你可以通过界面上的复选框自由决定哪些任务跑、哪些任务跳过：</p>
+      
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th width="20%">过滤开关</th>
+              <th width="35%">包含的具体任务类型</th>
+              <th width="25%">默认设置</th>
+              <th width="20%">建议说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>跳过考试答题</strong></td>
+              <td>淘金币省钱等级考试 (0/1) 等题目问卷</td>
+              <td><span class="badge badge-primary">默认勾选 (跳过)</span></td>
+              <td>答题随机容易答错，建议跳过</td>
+            </tr>
+            <tr>
+              <td><strong>跳过邀请好友</strong></td>
+              <td>每拉1人最高2000能量、组队邀请</td>
+              <td><span class="badge badge-primary">默认勾选 (跳过)</span></td>
+              <td>需要微信/真实好友助力，单机无法做</td>
+            </tr>
+            <tr>
+              <td><strong>跳过下单充值</strong></td>
+              <td>下单立得能量、充话费、办省钱卡</td>
+              <td><span class="badge badge-primary">默认勾选 (跳过)</span></td>
+              <td>涉及真金白银付款，坚决跳过</td>
+            </tr>
+            <tr>
+              <td><strong>跳过小程序跳转</strong></td>
+              <td>逛一逛蚂蚁庄园、逛一逛支付宝农场、金豆</td>
+              <td><span class="badge badge-success">默认不勾选 (执行)</span></td>
+              <td>自动授权点击【打开】进入，能拿大量能量</td>
+            </tr>
+            <tr>
+              <td><strong>自定义跳过词</strong></td>
+              <td>输入框自由填入词（如 <code>拍立淘, 办卡</code>）</td>
+              <td>已预填高频干扰词</td>
+              <td>按需填入任何你想跳过的词，逗号分隔</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 常见问题 FAQ -->
+    <div class="card">
+      <div class="section-title">❓ 常见问题排查 (FAQ)</div>
+      
+      <div class="faq-item">
+        <div class="faq-q">📌 Q1: 点击【一键连接无线】连接不上手机怎么办？</div>
+        <div class="faq-a">
+          ① 确认电脑和手机连的是<strong>同一个 Wi-Fi</strong>；<br>
+          ② 安卓系统的无线调试每次关闭重新开启后，<strong>端口号都会随机改变</strong>！请在手机“无线调试”页面查看当前的最新端口号，填入软件重新连接；<br>
+          ③ 如果无线路由器开启了“AP 隔离”，可用 Type-C 数据线直接连接电脑并开启 USB 调试，软件同样能自动识别。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">📌 Q2: 任务跑着跑着停了，提示“画面未识别到文字”？</div>
+        <div class="faq-a">
+          ① 手机可能因为长时间无按键而自动熄屏。软件已内置点亮屏幕指令，但建议在手机设置中开启【充电时不锁定屏幕】；<br>
+          ② 确保手机画面停留在【做任务赚能量】弹窗中。如果误退回了赛车主界面，手动点开任务弹窗即可恢复。
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">📌 Q3: 为什么别人的电脑里完全没有 Python 也可以直接用？</div>
+        <div class="faq-a">
+          因为软件已经完整将 Python 解释器、RapidOCR 离线模型和依赖打包进 `_internal` 目录中。桌面上的 `TaobaoDouble11Auto.zip` 是独立的便携软件包，解压即用。
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部版权 -->
+    <div class="footer">
+      <p>淘宝双11「淘金币组队赛车」全自动任务助手 · 纯本地离线运行 · MIT 开源许可</p>
+      <p style="margin-top: 4px; opacity: 0.8;">开源仓库: <a href="https://github.com/AsukaTJGM/taobao-double11-auto" target="_blank" style="color: var(--primary); text-decoration: none;">github.com/AsukaTJGM/taobao-double11-auto</a></p>
+    </div>
+  </div>
+</body>
+</html>
