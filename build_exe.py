@@ -61,7 +61,10 @@ for item in os.listdir(compiled_dir):
         os.makedirs(dst_path, exist_ok=True)
         shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
     else:
-        shutil.copy2(src_path, dst_path)
+        try:
+            shutil.copy2(src_path, dst_path)
+        except PermissionError:
+            pass  # 如果投屏程序正在运行锁定了 scrcpy.exe/dll，跳过不中断更新
 
 # 清理桌面目录下的旧残余文件
 for fname in os.listdir(DEST_DIR):

@@ -5,6 +5,7 @@
 
 import os
 import sys
+import re
 import time
 import random
 import threading
@@ -219,6 +220,17 @@ class AutoTaskEngine:
                 time.sleep(2)
                 continue
 
+            # 1. 自动检查并领取上方累计里程碑奖励 (+1000, +2000, +4000)
+            for line in result:
+                box, text, _ = line[0], line[1], line[2]
+                cx = (box[0][0] + box[1][0]) / 2
+                cy = (box[0][1] + box[2][1]) / 2
+                # 立即领取: \u7acb\u5373\u9886\u53d6
+                if "\u7acb\u5373\u9886\u53d6" in text and cy < 850:
+                    self.log(f"  🎁 发现可领取的里程碑大奖: {text}，正在点击 (坐标: {int(cx)}, {int(cy)})...")
+                    self.tap(cx, cy)
+                    time.sleep(1.0)
+
             buttons = []
             text_items = []
 
@@ -227,10 +239,11 @@ class AutoTaskEngine:
                 center_x = (box[0][0] + box[1][0]) / 2
                 center_y = (box[0][1] + box[2][1]) / 2
 
-                # 宽泛匹配右侧按钮：只要在右侧且包含“去”或“浏览”或“逛”或“完成”
-                # "\u53bb" (去), "\u5b8c\u6210" (完成), "\u6d4f\u89c8" (浏览), "\u901b" (逛)
-                is_btn = any(b in text for b in ["\u53bb", "\u5b8c\u6210", "\u6d4f\u89c8", "\u901b"])
-                if is_btn and center_x > 800:
+                # 严格匹配右侧“未完成”的按钮：
+                # 必须包含“去”或“浏览”或“逛”，但【绝对不能包含“已”字】（彻底排除“已完成”、“已领取”等灰色按钮）
+                # "\u53bb" (去), "\u6d4f\u89c8" (浏览), "\u901b" (逛), "\u5df2" (已)
+                is_btn = any(b in text for b in ["\u53bb", "\u6d4f\u89c8", "\u901b"]) and "\u5df2" not in text
+                if is_btn and center_x > 800 and center_y > 850:
                     buttons.append({"box": box, "center": (center_x, center_y), "text": text})
                 else:
                     text_items.append({"box": box, "center": (center_x, center_y), "text": text})
@@ -257,6 +270,15 @@ class AutoTaskEngine:
                 ]
                 row_title = "".join(matched_texts)
 
+                # 检查是否已达成进度，例如 (10/10)、(5/5)、(1/1)
+                is_finished = False
+                prog_match = re.search(r'\((\d+)/(\d+)\)', row_title)
+                if prog_match and prog_match.group(1) == prog_match.group(2):
+                    is_finished = True
+                if "\u5df2\u5b8c\u6210" in row_title or "\u5df2\u9886\u53d6" in row_title or "\u5df2" in btn["text"] or is_finished:
+                    self.log(f"  ⏭️ 跳过已完成任务: {row_title}")
+                    continue
+
                 is_black = any(bad in row_title for bad in DEFAULT_BLACK_LIST)
                 if not is_black:
                     target_button = btn
@@ -266,7 +288,7 @@ class AutoTaskEngine:
                     self.log(f"  ⏭️ 跳过特殊任务: {row_title}")
 
             if not target_button:
-                self.log("当前屏幕全是特殊任务，向下滑动翻页...")
+                self.log("当前屏幕无未完成的有效任务，向下滑动翻页...")
                 self.swipe_screen(600, 2100, 600, 1100, 600)
                 time.sleep(2)
                 continue
