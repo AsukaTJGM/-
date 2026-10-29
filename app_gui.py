@@ -25,11 +25,11 @@ STARTUP_INFO.wShowWindow = 0  # SW_HIDE
 NO_WINDOW_FLAGS = 0x08000000  # CREATE_NO_WINDOW
 
 # 使用纯 ASCII Unicode 转义，彻底杜绝 Windows 编码错乱 (CP936/GBK 乱码)
-# 考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘, 金豆, 支付宝, 省钱, 农场, 庄园
+# 只拉黑必须人类交互或花钱的任务：考试, 答题, 买, 下单, 充值, 邀请, 开卡, 拍立淘
+# 农场、庄园、支付宝小程序、省钱卡、金豆等均已全面放行并支持自动授权打开！
 DEFAULT_BLACK_LIST = [
     "\u8003\u8bd5", "\u7b54\u9898", "\u4e70", "\u4e0b\u5355", 
-    "\u5145\u503c", "\u9080\u8bf7", "\u5f00\u5361", "\u62cd\u7acb\u6dd8",
-    "\u91d1\u8c46", "\u652f\u4ed8\u5b9d", "\u7701\u94b1", "\u519c\u573a", "\u5e84\u56ed"
+    "\u5145\u503c", "\u9080\u8bf7", "\u5f00\u5361", "\u62cd\u7acb\u6dd8"
 ]
 
 class AutoTaskEngine:
@@ -149,6 +149,8 @@ class AutoTaskEngine:
         for _ in range(max_backs):
             if not self.is_running:
                 return False
+            # 消除跳转过程中可能残留的小程序弹窗
+            self.check_and_dismiss_open_dialog()
             img_bytes = self.get_screencap()
             res, _ = self.ocr(img_bytes)
             all_text = "".join([l[1] for l in res]) if res else ""
@@ -156,11 +158,13 @@ class AutoTaskEngine:
                 self.log("  ✅ 已回到主面板")
                 return True
             self.press_back()
-            time.sleep(0.8)
+            time.sleep(1.0)
         return False
 
     def handle_landing_page(self, browse_seconds=18):
-        time.sleep(1.0)
+        time.sleep(1.2)
+        # 优先消除可能弹出的“打开小程序”授权窗口
+        self.check_and_dismiss_open_dialog()
         img_bytes = self.get_screencap()
         res, _ = self.ocr(img_bytes)
         all_text = "".join([l[1] for l in res]) if res else ""
@@ -189,7 +193,9 @@ class AutoTaskEngine:
         self.browse_reciprocating(total_seconds=browse_seconds)
         self.return_to_task_list()
 
-    def run_loop(self, max_tasks=40):
+    def run_loop(self, max_tasks=40, blacklist=None):
+        if blacklist is None:
+            blacklist = DEFAULT_BLACK_LIST
         self.is_running = True
         try:
             self.init_ocr()
@@ -279,7 +285,7 @@ class AutoTaskEngine:
                     self.log(f"  ⏭️ 跳过已完成任务: {row_title}")
                     continue
 
-                is_black = any(bad in row_title for bad in DEFAULT_BLACK_LIST)
+                is_black = any(bad in row_title for bad in blacklist)
                 if not is_black:
                     target_button = btn
                     target_task_name = row_title if row_title else btn["text"]
@@ -328,8 +334,8 @@ class AppGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("淘宝双11自动化助手 v1.0")
-        self.geometry("680x640")
-        self.minsize(580, 520)
+        self.geometry("700x720")
+        self.minsize(620, 560)
 
         self.style = ttk.Style(self)
         self.style.theme_use("clam")
@@ -393,6 +399,31 @@ class AppGUI(tk.Tk):
 
         self.btn_stop = ttk.Button(f3, text="⏹ 停止运行", command=self.stop_task, state=tk.DISABLED)
         self.btn_stop.pack(side=tk.RIGHT, padx=6)
+
+        filter_group = ttk.LabelFrame(self, text=" 任务跳过与过滤设置 (自由勾选) ", padding="10")
+        filter_group.pack(fill=tk.X, padx=14, pady=5)
+
+        row1 = ttk.Frame(filter_group)
+        row1.pack(fill=tk.X, pady=2)
+        self.skip_quiz_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(row1, text="跳过考试答题", variable=self.skip_quiz_var).pack(side=tk.LEFT, padx=6)
+
+        self.skip_invite_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(row1, text="跳过邀请好友", variable=self.skip_invite_var).pack(side=tk.LEFT, padx=6)
+
+        self.skip_money_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(row1, text="跳过下单充值", variable=self.skip_money_var).pack(side=tk.LEFT, padx=6)
+
+        self.skip_miniapp_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(row1, text="跳过小程序跳转(农场/庄园/金豆)", variable=self.skip_miniapp_var).pack(side=tk.LEFT, padx=6)
+
+        row2 = ttk.Frame(filter_group)
+        row2.pack(fill=tk.X, pady=4)
+        ttk.Label(row2, text="自定义额外跳过词:").pack(side=tk.LEFT, padx=5)
+        self.custom_skip_entry = ttk.Entry(row2, width=32)
+        self.custom_skip_entry.insert(0, "拍立淘, 办卡")
+        self.custom_skip_entry.pack(side=tk.LEFT, padx=5)
+        ttk.Label(row2, text="(逗号分隔)", foreground="#888888").pack(side=tk.LEFT)
 
         log_group = ttk.LabelFrame(self, text=" 实时执行日志 ", padding="8")
         log_group.pack(fill=tk.BOTH, expand=True, padx=14, pady=6)
@@ -482,20 +513,45 @@ class AppGUI(tk.Tk):
         except Exception as e:
             self.append_log(f"启动投屏失败: {e}")
 
+    def get_active_blacklist(self):
+        bl = []
+        if self.skip_quiz_var.get():
+            bl.extend(["\u8003\u8bd5", "\u7b54\u9898"])  # 考试, 答题
+        if self.skip_invite_var.get():
+            bl.extend(["\u9080\u8bf7", "\u62c9\u4eba", "\u52a9\u529b"])  # 邀请, 拉人, 助力
+        if self.skip_money_var.get():
+            bl.extend(["\u4e0b\u5355", "\u5145\u503c", "\u5f00\u5361", "\u4e70"])  # 下单, 充值, 开卡, 买
+        if self.skip_miniapp_var.get():
+            bl.extend(["\u5e84\u56ed", "\u519c\u573a", "\u91d1\u8c46", "\u7701\u94b1\u5361"])  # 庄园, 农场, 金豆, 省钱卡
+
+        custom_txt = self.custom_skip_entry.get().strip()
+        if custom_txt:
+            for item in custom_txt.replace("\uff0c", ",").split(","):
+                w = item.strip()
+                if w:
+                    bl.append(w)
+        return bl
+
     def start_task(self):
         try:
             max_tasks = int(self.task_num_spin.get())
         except Exception:
             max_tasks = 40
 
+        blacklist = self.get_active_blacklist()
+        self.append_log(f"当前生效跳过词: {blacklist}")
         self.set_status("running")
-        self.worker_thread = threading.Thread(target=self.engine.run_loop, args=(max_tasks,), daemon=True)
+        self.btn_start.config(state=tk.DISABLED)
+        self.btn_stop.config(state=tk.NORMAL)
+        self.worker_thread = threading.Thread(target=self.engine.run_loop, args=(max_tasks, blacklist), daemon=True)
         self.worker_thread.start()
 
     def stop_task(self):
         self.engine.is_running = False
         self.append_log("🛑 正在停止任务...")
         self.set_status("idle")
+        self.btn_start.config(state=tk.NORMAL)
+        self.btn_stop.config(state=tk.DISABLED)
 
 if __name__ == "__main__":
     app = AppGUI()
