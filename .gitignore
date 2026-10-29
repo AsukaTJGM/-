@@ -28,3 +28,7 @@ window_dump.xml
 *.exe
 *.dll
 scrcpy-win64-*/
+build/
+dist/
+
+

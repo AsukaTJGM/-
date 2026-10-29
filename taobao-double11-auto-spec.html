@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>淘宝双11「淘金币组队赛车」自动化助手 - 产品需求与工程规范 (PRD/Spec)</title>
+  <style>
+    :root {
+      --bg: #F8F9FA;
+      --card-bg: #FFFFFF;
+      --text-main: #1F2937;
+      --text-muted: #6B7280;
+      --primary: #FF5000;
+      --primary-light: #FFF0EB;
+      --primary-dark: #D44000;
+      --success: #10B981;
+      --success-light: #ECFDF5;
+      --border: #E5E7EB;
+      --accent: #3B82F6;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-stack);
+      line-height: 1.6;
+      padding: 32px 16px;
+    }
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    .header {
+      background: linear-gradient(135deg, #FF5000 0%, #FF8533 100%);
+      color: #fff;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(255, 80, 0, 0.18);
+      margin-bottom: 28px;
+    }
+    .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .header p { font-size: 15px; opacity: 0.92; margin-bottom: 16px; }
+    .meta-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 13px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
+    }
+    .meta-item { display: flex; align-items: center; gap: 6px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .card-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    .badge-success { background: var(--success-light); color: var(--success); }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .mini-card {
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+    }
+    .mini-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+    .mini-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      text-align: left;
+    }
+    th {
+      background-color: #F9FAFB;
+      font-weight: 600;
+      color: #374151;
+    }
+    tr:nth-child(even) { background-color: #FAFAFA; }
+
+    .code-block {
+      background: #1E1E1E;
+      color: #D4D4D4;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-family: Consolas, Monaco, monospace;
+      font-size: 13px;
+      margin: 12px 0;
+      overflow-x: auto;
+    }
+
+    ul, ol { padding-left: 20px; margin-top: 8px; }
+    li { margin-bottom: 6px; font-size: 14px; color: #374151; }
+
+    .timeline {
+      position: relative;
+      border-left: 3px solid var(--primary);
+      margin-left: 10px;
+      padding-left: 20px;
+      margin-top: 16px;
+    }
+    .timeline-item { margin-bottom: 18px; position: relative; }
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -27px;
+      top: 4px;
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+    .timeline-item h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .timeline-item p { font-size: 13px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 淘宝双11「淘金币组队赛车」自动化助手</h1>
+      <p>Windows 桌面级独立自动化软件产品需求与工程技术规范 (Product Specification / PRD)</p>
+      <div class="meta-bar">
+        <div class="meta-item"><strong>产品形态:</strong> 独立免安装桌面客户端 (.exe)</div>
+        <div class="meta-item"><strong>当前版本:</strong> v1.2 Production Ready</div>
+        <div class="meta-item"><strong>发布日期:</strong> 2026-10-29</div>
+        <div class="meta-item"><strong>技术栈:</strong> Python 3.13 / Tkinter / RapidOCR ONNX / ADB / Scrcpy</div>
+      </div>
+    </div>
+
+    <!-- 决策链与访谈结论 -->
+    <div class="card">
+      <div class="card-title">
+        <span>💡 架构决策演进链 (Architecture Decision Highlights)</span>
+        <span class="badge badge-primary">实战淬炼</span>
+      </div>
+      <p style="font-size: 14px; color: var(--text-muted);">本系统经历了从脆弱单文件脚本到工业级桌面软件的完整迭代：</p>
+      
+      <div class="grid-3">
+        <div class="mini-card" style="border-left: 4px solid #FF5000;">
+          <h4>🎯 阶段 1: 桌面化交付</h4>
+          <p>彻底推翻命令行脚本，提供双击即启的 Tkinter GUI 与独立 PyInstaller EXE，让普通用户彻底摆脱 Python 依赖与黑屏命令。</p>
+        </div>
+        <div class="mini-card" style="border-left: 4px solid #3B82F6;">
+          <h4>⚡ 阶段 2: 零弹窗静默通信</h4>
+          <p>全面注入 <code>STARTUPINFO.wShowWindow = 0 (SW_HIDE)</code> 与 <code>CREATE_NO_WINDOW</code>，彻底消除 Windows 11 终端的闪烁跳动。</p>
+        </div>
+        <div class="mini-card" style="border-left: 4px solid #10B981;">
+          <h4>🛡️ 阶段 3: 状态熔断与大奖智领</h4>
+          <p>严格隔离 15秒/5秒 判定，以正则 <code>(10/10)</code> 拦截满额死循环，自动排除“已完成”灰色按钮，开局自动领取里程碑 +1000/+2000 大奖。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问题定义与方案 -->
+    <div class="card">
+      <div class="card-title"><span>📌 问题定义与核心价值</span></div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <h4 style="color: #DC2626; margin-bottom: 8px;">用户真实痛点</h4>
+          <ul>
+            <li>每日多达 30~50 个任务，机械滑动消耗近 1 小时；</li>
+            <li>页面防作弊检测严格，停止滑动倒计时立刻暂停；</li>
+            <li>传统脚本抢占电脑鼠标或需 Root 手机，极不安全；</li>
+            <li>遇到“已完成”仍重复点击陷入死循环；</li>
+            <li>跨端跳转小程序弹出授权框卡死流程。</li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="color: #10B981; margin-bottom: 8px;">系统核心解决方案</h4>
+          <ul>
+            <li><strong>AI 视觉寻道</strong>：离线 RapidOCR 自适应不同分辨率和动态排版；</li>
+            <li><strong>活跃往复滑动</strong>：模拟真人两下一下回滑，保持倒计时打满；</li>
+            <li><strong>完全后台执行</strong>：内核指令注入，电脑正常工作游戏不抢鼠标；</li>
+            <li><strong>内置高清投屏</strong>：无缝捆绑 Scrcpy 5.0.1，一键唤起实时画面；</li>
+            <li><strong>自由过滤面板</strong>：界面支持分类勾选跳过与自定义跳过词。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 用户故事 -->
+    <div class="card">
+      <div class="card-title"><span>👤 用户故事清单 (User Stories)</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th width="10%">ID</th>
+            <th width="20%">用户角色</th>
+            <th width="40%">需求场景 (Feature)</th>
+            <th width="30%">预期价值 (Benefit)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>US-01</strong></td>
+            <td>普通用户</td>
+            <td>双击桌面快捷方式即可直接启动软件</td>
+            <td>无需安装 Python 或配环境变量，零门槛上手</td>
+          </tr>
+          <tr>
+            <td><strong>US-02</strong></td>
+            <td>多开/办公人员</td>
+            <td>后台全自动跑任务，且绝不弹出 CMD 黑框</td>
+            <td>电脑正常码字/看视频/玩游戏，丝毫不受打扰</td>
+          </tr>
+          <tr>
+            <td><strong>US-03</strong></td>
+            <td>手机用户</td>
+            <td>遇到“想要打开支付宝小程序”对话框自动点【打开】</td>
+            <td>无需人工守在手机旁重复点击授权</td>
+          </tr>
+          <tr>
+            <td><strong>US-04</strong></td>
+            <td>高阶用户</td>
+            <td>自由勾选跳过答题、跳过邀请好友、自定义跳过词</td>
+            <td>随心控制想要完成的任务类型，防止误操作</td>
+          </tr>
+          <tr>
+            <td><strong>US-05</strong></td>
+            <td>收益最大化用户</td>
+            <td>刷满任务后自动领取 +1000/+2000 里程碑大奖</td>
+            <td>自动收割加码金，不遗漏任何活动福利</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 任务类型全景表 -->
+    <div class="card">
+      <div class="card-title"><span>📊 双11任务全类型调度与过滤策略</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>任务分类</th>
+            <th>代表性任务名称</th>
+            <th>耗时要求</th>
+            <th>自动化策略</th>
+            <th>默认处理方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>纯好物浏览</strong></td>
+            <td>好物随心逛 (0/10)、好物沉浸看 (0/5)</td>
+            <td>15 秒 / 5 秒</td>
+            <td>往复滑满 18s/7s 后极速返回</td>
+            <td><span class="badge badge-success">自动执行</span></td>
+          </tr>
+          <tr>
+            <td><strong>搜索浏览</strong></td>
+            <td>搜一搜你心仪的宝贝 (0/10)、淘宝好物</td>
+            <td>15 秒</td>
+            <td>提取真实标签词进列表滑满 18s</td>
+            <td><span class="badge badge-success">自动执行</span></td>
+          </tr>
+          <tr>
+            <td><strong>轻量小程序</strong></td>
+            <td>去芭芭农场领水果、逛一逛蚂蚁庄园</td>
+            <td>5 秒或秒领</td>
+            <td>智能点底部【打开/允许】授权并返回</td>
+            <td><span class="badge badge-success">自动执行(可勾选跳过)</span></td>
+          </tr>
+          <tr>
+            <td><strong>答题考试</strong></td>
+            <td>淘金币省钱等级考试 (0/1)</td>
+            <td>随机3题</td>
+            <td>无题库容易答错</td>
+            <td><span class="badge badge-primary">默认跳过</span></td>
+          </tr>
+          <tr>
+            <td><strong>邀请助力</strong></td>
+            <td>每拉1人最高2000能量 (0/10)</td>
+            <td>外部分享</td>
+            <td>需真实好友点击</td>
+            <td><span class="badge badge-primary">默认跳过</span></td>
+          </tr>
+          <tr>
+            <td><strong>消费金融</strong></td>
+            <td>下单立得能量、充值充话费、办省钱卡</td>
+            <td>真实付款</td>
+            <td>涉及资金支付安全</td>
+            <td><span class="badge badge-primary">默认跳过</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 验收与验证接缝 -->
+    <div class="card">
+      <div class="card-title"><span>🧪 真机集成验证记录 (Verification Seams)</span></div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <h4>SEAM-01: 静默通信无弹窗</h4>
+          <p>连续执行 50 步 ADB 命令，系统未产生任何可见 CMD 或 conhost 弹窗，任务栏平稳干净。</p>
+        </div>
+        <div class="timeline-item">
+          <h4>SEAM-02: 搜索标签精准命中</h4>
+          <p>进入搜索页过滤静态标题“搜索发现”，命中“hbn”标签进入商品结果页并滑满 18 秒。</p>
+        </div>
+        <div class="timeline-item">
+          <h4>SEAM-03: 满额与灰色按钮状态机熔断</h4>
+          <p>遇到 <code>好物随心逛 (10/10) [已完成]</code> 时，正则与“已”字双重判定触发，自动向下滑动跳过，杜绝死循环。</p>
+        </div>
+        <div class="timeline-item">
+          <h4>SEAM-04: 里程碑自动落袋</h4>
+          <p>进度达到 33/50 时，成功捕获并点击上方 <code>+1000</code> / <code>+2000</code> 立即领取按钮。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
