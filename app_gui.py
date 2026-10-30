@@ -374,7 +374,7 @@ class AppGUI(tk.Tk):
 
         ttk.Label(f2, text="无线连接:").pack(side=tk.LEFT, padx=5)
         self.ip_entry = ttk.Entry(f2, width=24)
-        self.ip_entry.insert(0, "192.168.1.104:33821")
+        self.ip_entry.insert(0, "手机上显示的IP:端口")
         self.ip_entry.pack(side=tk.LEFT, padx=5)
 
         self.btn_connect = ttk.Button(f2, text="一键连接无线", command=self.connect_wireless)
